@@ -1,14 +1,14 @@
 # ML2025_Final_Project
-當然可以 👍
+當然可以 
 以下是一份簡潔、期末專題報告適用的 **README 草稿**（採中英雙語、語氣自然、不艱深），適合放在 GitHub 專案首頁或期末投影片摘要裡。
 
 ---
 
-# 🦖 Dino-AI: 自動學會玩 Google 小恐龍的機器學習專題
+#  Dino-AI: 自動學會玩 Google 小恐龍的機器學習專題
 
 *(Dino-AI: Machine Learning Agent for the Google Chrome Dino Game)*
 
-## 🎯 專案簡介 (Overview)
+##  專案簡介 (Overview)
 
 本專題目標是讓電腦**自動學會玩 Google Chrome 的離線恐龍遊戲**，
 不使用任何手刻規則（rule-based），而是**透過觀察人類的示範畫面與操作紀錄進行學習**。
