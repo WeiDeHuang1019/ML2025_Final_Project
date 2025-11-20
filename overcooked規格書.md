@@ -30,9 +30,9 @@ Overcooked 是一款合作型的高互動遊戲，
 
 ---
 
-# 2. 系統需求（Requirements）
+## 1. 系統需求（Requirements）
 
-## 2.1 功能需求（Functional Requirements）
+## 1.1 功能需求（Functional Requirements）
 
 ### **資料蒐集**
 - 擷取固定 FPS 的遊戲畫面（建議 10–20 FPS）
@@ -52,7 +52,7 @@ Overcooked 是一款合作型的高互動遊戲，
 
 ---
 
-## 2.2 效能需求（Performance Requirements）
+## 1.2 效能需求（Performance Requirements）
 
 ### **訓練階段**
 - 至少 10,000 張以上訓練資料
@@ -66,7 +66,7 @@ Overcooked 是一款合作型的高互動遊戲，
 
 ---
 
-## 2.3 介面需求（Interface Requirements）
+## 1.3 介面需求（Interface Requirements）
 
 ### **外部介面（External Interfaces）**
 
@@ -85,7 +85,7 @@ Overcooked 是一款合作型的高互動遊戲，
 
 ---
 
-# 3. 限制（Limitations）
+# 1.4. 限制（Limitations）
 
 - **1. AI 上限取決於玩家示範的品質**  
 - **2. Covariate Shift 問題：**  
@@ -99,7 +99,7 @@ Overcooked 是一款合作型的高互動遊戲，
 
 ---
 
-# 4. 驗收標準（Acceptance Criteria）
+# 1.5. 驗收標準（Acceptance Criteria）
 
 ### **資料收集階段**
 - 每張 frame 都具有正確同步的 action label  
