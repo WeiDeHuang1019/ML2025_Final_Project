@@ -37,6 +37,9 @@
 | `Trainer` | 更新 Q-network、同步 target | batch | loss, updated weights |
 | `Logger` | 記錄分數/影片/曲線 | events | log files |
 
+### BreakDown
+<img width="1334" height="889" alt="image" src="https://github.com/user-attachments/assets/861d6835-9e0b-4e3e-953e-8f5bd815e817" />
+
 
 ## 1.4 Constraints（限制）
 
@@ -44,10 +47,9 @@
 Frame-rate 需維持穩定（DQN 對環境延遲敏感）。
 
 ## 1.5 Acceptance Criteria（驗收標準）
-
+#### 於PAIA pingpong環境: 
 - 系統能成功與PAIA pingpong 遊戲互動並參與線上對戰。
-- 平均回合分數明顯高於隨機策略。
-- 推論能讓 Agent 自動遊玩至少一整回合(15分)。
+- 能讓 Agent 自動對打遊玩至少達15個回合(一個來回為1回合)。
 
 ---
 
@@ -165,4 +167,110 @@ $$
 ## 5. 參考文獻
 
 1. **Original Paper:** Mnih, V., Kavukcuoglu, K., Silver, D., et al. "Human-level control through deep reinforcement learning." *Nature* 518, 529–533 (2015).
+
+
+這是一份可以直接加入你 GitHub `README.md` 的技術說明文件。我將你的要求轉換為清晰的 Markdown 格式，並根據你提供的程式碼內容進行了解釋。
+
+-----
+
+# PAIA Ping Pong - Deep Q-Network (DQN) Agent
+
+本專案使用強化學習（Reinforcement Learning）中的 **Deep Q-Network (DQN)** 演算法，訓練一個能夠自動遊玩 PAIA 乒乓球遊戲的 AI Agent。該模型經過特別設計，具備較深的網路結構與能夠同時適應「普通模式」與具備障礙物的「困難模式」。
+
+## 1. 狀態向量 (State Vector, $\phi$)
+
+為了讓神經網路理解當前的遊戲局勢，我們將遊戲畫面資訊 (`scene_info`) 轉換為一個長度為 **8** 的正規化特徵向量 $\phi(s)$。所有數值皆經過標準化處理（除以螢幕寬高或最大速度），以加速神經網路收斂。
+
+輸入狀態向量定義如下：
+
+| Index | 特徵名稱 | 描述 | 正規化方式 |
+| :--- | :--- | :--- | :--- |
+| **0** | $Ball_x$ | 球的 X 座標 | $x / 200$ |
+| **1** | $Ball_y$ | 球的 Y 座標 | $y / 500$ |
+| **2** | $V_x$ | 球的水平速度 | $v_x / 20$ |
+| **3** | $V_y$ | 球的垂直速度 | $v_y / 20$ |
+| **4** | $Paddle_{Self}$ | 我方板子 X 座標 | $x / 200$ |
+| **5** | $Paddle_{Op}$ | 對手板子 X 座標 | $x / 200$ |
+| **6** | $Blocker_x$ | 障礙物 X 座標 | $x / 200$ (若無則為負值) |
+| **7** | $Blocker_y$ | 障礙物 Y 座標 | $y / 500$ (若無則為負值) |
+
+---
+
+## 2. 遊戲模式適應機制 (Mode Adaptation)
+
+本模型採用 **統一狀態表示法 (Unified State Representation)** 來同時處理「普通模式」與「困難模式」，無需手動切換程式碼。
+
+* **普通模式 (Normal Mode)**：
+    當場景中沒有障礙物時，程式會捕捉到異常或空值，此時狀態向量中的 `Blocker` 座標 (Index 6, 7) 會被設為預設值（如 -1）。神經網路會學習到當這兩個數值為負時，只需專注於球與板子的互動。
+* **困難模式 (Hard Mode)**：
+    當場景中出現障礙物（Blocker）時，其真實座標會被正規化並填入向量。由於我們加深了網路層數（詳見模型架構），DQN 能夠學習障礙物的軌跡特徵，並發展出避開或利用障礙物反彈的策略。
+
+---
+
+## 3. 獎勵機制 (Reward Function)
+
+為了引導 Agent 學習正確的行為，我們設計了一套 **稀疏獎勵 (Sparse Reward)** 與 **塑形獎勵 (Shaping Reward)** 混合的機制 $R$：
+
+### A. 勝負獎勵 (Outcome Reward)
+這是最核心的目標，發生在回合結束時：
+* **獲勝 (+20)**：成功將球回擊且對手未接到（球通過對手防線）。
+* **落敗 (-20)**：未能接到球（球通過我方防線）。
+
+### B. 引導獎勵 (Shaping Reward)
+為了加速初期訓練，避免 Agent 像無頭蒼蠅一樣隨機移動：
+* **追球獎勵 (+0.1)**：當我方板子中心與球的水平距離 (`dist`) 小於 20 pixels 時給予微小獎勵。這鼓勵 Agent 隨時保持在球的下方。
+* **有效回擊 (+5)**：當偵測到球的垂直速度 ($V_y$) 方向改變（代表發生碰撞）且球位於特定高度區間時，視為成功回擊。這讓 Agent 學習到「碰到球」是高價值的行為。
+
+---
+
+## 4. 模型架構與調整 (DQN Architecture)
+
+本專案使用 PyTorch 建構神經網路。為了應對 RTX 3070 等高算力顯卡並處理複雜的障礙物軌跡，我們對標準 DQN 進行了以下調整：
+
+### 網路結構 (The Network)
+採用全連接層 (Fully Connected Layers)，結構為 **深層寬體網路**：
+* **Input Layer**: 8 neurons (對應狀態向量)
+* **Hidden Layer 1**: 512 neurons (ReLU) - *加寬以提取更多特徵*
+* **Hidden Layer 2**: 256 neurons (ReLU)
+* **Hidden Layer 3**: 128 neurons (ReLU) - *加深以處理非線性障礙物邏輯*
+* **Output Layer**: 3 neurons (對應動作：左移、右移、不動)
+
+### 訓練更新 (Optimization)
+* 使用 **Adam Optimizer** 進行梯度下降。
+* 損失函數採用 **MSE Loss** (均方誤差)，計算預測 Q 值與目標 Q 值 ($R + \gamma \max Q(s', a')$) 之間的差異。
+
+---
+
+## 5. 關鍵超參數 (Hyperparameters)
+
+為了在效能與訓練穩定度之間取得平衡，主要超參數設定如下：
+
+| 參數 | 數值 | 說明 |
+| :--- | :--- | :--- |
+| **Batch Size** | `1024` | 配合高階 GPU 的大批次訓練，能讓梯度估計更穩定。 |
+| **Learning Rate** | `0.0005` | 學習率。配合大 Batch Size 進行微調。 |
+| **Gamma ($\gamma$)** | `0.99` | 折扣因子。重視長期利益（贏得比賽）而非僅是短期回報。 |
+| **Memory Capacity** | `100,000` | 經驗回放緩衝區大小，儲存過往的 `(s, a, r, s')`。 |
+| **Target Update** | `1000` | 每 1000 步更新一次 Target Network，保持訓練目標穩定。 |
+
+---
+
+## 6. 探索策略 ($\epsilon$-Greedy Strategy)
+
+$\epsilon$ (Epsilon) 控制著 Agent 在「探索 (Exploration)」與「利用 (Exploitation)」之間的平衡。
+
+* **初始值**: `1.0` (100% 隨機動作，完全探索)
+* **最小值**: `0.05` (保留 5% 的機率進行隨機嘗試)
+* **衰減率 (Decay)**: `0.99992`
+
+**機制說明**：
+在訓練初期，$\epsilon$ 很高，Agent 會隨機亂動以收集各種可能的狀態與結果。隨著訓練進行，$\epsilon$ 每次與環境互動後都會乘以 `0.99992` 慢慢下降。這是一個非常緩慢的衰減過程，確保 Agent 在收斂到固定策略之前，有足夠長的時間去探索各種複雜的球路與障礙物反彈情況。
+
+
+這是 $\epsilon$-Greedy (Epsilon-Greedy) 策略的數學公式說明，採用 Markdown 搭配 LaTeX 語法，您可以直接複製貼上到您的文件或 README 中。
+
+
+
+
+
 
