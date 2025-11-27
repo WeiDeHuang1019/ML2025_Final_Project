@@ -1,6 +1,5 @@
 #  DQN Atari Agent — Project Specification & System Design  
-*Inspired by “Playing Atari with Deep Reinforcement Learning (2013)” and  
-“Human-level Control through Deep Reinforcement Learning (2015)”*
+*Inspired by “Human-level Control through Deep Reinforcement Learning (2015)”*
 
 ---
 
@@ -169,7 +168,6 @@ $$
 1. **Original Paper:** Mnih, V., Kavukcuoglu, K., Silver, D., et al. "Human-level control through deep reinforcement learning." *Nature* 518, 529–533 (2015).
 
 
-這是一份可以直接加入你 GitHub `README.md` 的技術說明文件。我將你的要求轉換為清晰的 Markdown 格式，並根據你提供的程式碼內容進行了解釋。
 
 -----
 
