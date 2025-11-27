@@ -265,7 +265,7 @@ $\epsilon$ (Epsilon) 控制著 Agent 在「探索 (Exploration)」與「利用 (
 在訓練初期，$\epsilon$ 很高，Agent 會隨機亂動以收集各種可能的狀態與結果。隨著訓練進行，$\epsilon$ 每次與環境互動後都會乘以 `0.99992` 慢慢下降。這是一個非常緩慢的衰減過程，確保 Agent 在收斂到固定策略之前，有足夠長的時間去探索各種複雜的球路與障礙物反彈情況。
 
 
-這是 $\epsilon$-Greedy (Epsilon-Greedy) 策略的數學公式說明，採用 Markdown 搭配 LaTeX 語法，您可以直接複製貼上到您的文件或 README 中。
+
 
 
 
