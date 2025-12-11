@@ -27,17 +27,32 @@
 
 ## 1.3 Interface Requirements（介面）
 
-### Internal Interface（內部模組介面）
-| 模組 | 功能 | 輸入 | 輸出 |
-|------|------|------|-------|
-| `MLPlay update` | 與PAIA pinpong 遊戲互動 | PAIA pinpong 遊戲內資訊(state) | 擊球板動作(action) |
-| `DQN Network` | MLP Q-value 網路 | state | Q(s, a) |
-| `ReplayBuffer` | 經驗儲存/取樣 | transition | sampled batch |
-| `Trainer` | 更新 Q-network、同步 target | batch | loss, updated weights |
-| `Logger` | 記錄分數/影片/曲線 | events | log files |
+## BreakDown
+<img width="3772" height="1284" alt="image" src="https://github.com/user-attachments/assets/309203a3-b0c5-417a-8d3e-8aa218c1a9ae" />
 
-### BreakDown
-<img width="1334" height="889" alt="image" src="https://github.com/user-attachments/assets/861d6835-9e0b-4e3e-953e-8f5bd815e817" />
+## Architecture
+<img width="3884" height="2764" alt="image" src="https://github.com/user-attachments/assets/6375cb46-2542-48b7-999e-aba97b3fb733" />
+
+## APIs
+| 檔案名稱 | 1. 輸入 (Input) | 2. 輸出 (Output) | 3. 主要參數 (Param) | 4. 方法/邏輯 (Method) | 5. 呼叫例子 (Call Example) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **game\_config.json** | 無 (靜態設定檔) | **命令列參數定義**<br>(CLI Arguments Schema) | `difficulty` ("EASY"/"NORMAL"/"HARD")<br>`game_over_score` (1-15)<br>`init_vel` (1-30) | **定義規格**：<br>設定參數名稱、縮寫、型別、預設值與允許範圍。 | `python -m mlgame ... --difficulty HARD` |
+| **config.py** | `src.game.PingPong` 類別 | **`GAME_SETUP` 字典** | `GAME_SETUP["game"]` | **註冊入口**：<br>將遊戲的主類別 (`PingPong`) 映射給 MLGame 框架。 | `game_cls = config.GAME_SETUP["game"]` |
+| **src/game.py**<br>(遊戲核心) | **指令 (Commands)**<br>`{"1P": "MOVE_LEFT", ...}` | **場景資訊 (Scene Info)**<br>`{"ball": (x,y), ...}`<br>**渲染資料** `scene_progress` | `difficulty`<br>`game_over_score`<br>`init_vel` | **`update()`**: 更新遊戲狀態。<br>**`get_data_from_game_to_player()`**: 打包給 AI 的資料。<br>**`_game_over()`**: 判定勝負。 | `scene_info = game.get_data_from_game_to_player()`<br>`result = game.update(commands)` |
+| **src/game\_object.py**<br>(物理實體) | **物理屬性**<br>(碰撞判定、移動方向) | **物件狀態**<br>(座標 `rect`、速度 `speed`) | `init_pos` (初始位置)<br>`play_area_rect` (邊界)<br>`side` ("1P"/"2P") | **`move()`**: 計算位移。<br>**`check_bouncing()`**: 處理球的反彈與切球物理。<br>**`reset()`**: 重置位置。 | `ball.move()`<br>`ball.check_bouncing(platform_1P, ...)` |
+| **ml/ml\_play.py**<br>(AI 訓練端) | **場景資訊 (Scene Info)**<br>(球座標、板子位置) | **動作指令 (Command)**<br>`"MOVE_LEFT"`, `"NONE"`<br>**模型檔案** (`dqn_model.pth`) | `batch_size=1024`<br>`lr=0.0005`<br>`epsilon` (探索率) | **`update()`**: 決定動作並呼叫訓練。<br>**`train_step()`**: 計算 Loss 更新網路。<br>**`get_state_vector()`**: 特徵正規化。<br>**`save_model()`**: 儲存權重。 | `command = ai.update(scene_info)`<br>`ai.save_model()` |
+| **ml/ml\_play\_eval.py**<br>(AI 推論端) | **場景資訊 (Scene Info)**<br>**模型權重** (`dqn_model.pth`) | **動作指令 (Command)**<br>(僅回傳動作，不產出模型) | `epsilon=0.05`<br>(極低探索率，趨向貪婪策略) | **`_load_model_for_eval()`**: 載入訓練好的權重。<br>**`select_action()`**: 僅使用 `argmax` 選擇最佳動作，不進行反向傳播訓練。 | `ai = MLPlay("1P")`<br>`command = ai.update(scene_info)` |
+
+### 表格重點補充
+
+1.  **資料流向 (Data Flow)**:
+      * **輸入端**: `game_config.json` 定義了參數，由 `config.py` 傳遞給 `game.py` 初始化環境。
+      * **迴圈中**: `game.py` 產出 `scene_info` (Output) -\> 傳入 `ml_play.py` (Input) -\> 經過神經網路運算 -\> 產出 `Command` (Output) -\> 傳回 `game.py` (Input) 更新畫面。
+2.  **訓練 vs 推論**:
+      * `ml_play.py` 的特點是包含 **`ReplayMemory`** 與 **`train_step`**，且會輸出 `.pth` 檔。
+      * `ml_play_eval.py` 則移除了訓練邏輯，只包含 **`load_model`** 與 **`select_action`**，專注於使用已存在的 `.pth` 檔進行遊戲。
+3.  **物件層級**:
+      * `game.py` 是主要遊戲進行，它實例化並管理 `game_object.py` 裡面的 `Ball`, `Platform`, `Blocker`。
 
 
 ## 1.4 Constraints（限制）
