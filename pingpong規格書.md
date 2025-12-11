@@ -28,10 +28,10 @@
 ## 1.3 Interface Requirements（介面）
 
 ## BreakDown
-<img width="3772" height="1284" alt="image" src="https://github.com/user-attachments/assets/309203a3-b0c5-417a-8d3e-8aa218c1a9ae" />
+<img width="4280" height="1284" alt="image" src="https://github.com/user-attachments/assets/10102b59-6244-4a05-8aa9-7cbdbb7c7f6d" />
 
 ## Architecture
-<img width="3884" height="2764" alt="image" src="https://github.com/user-attachments/assets/6375cb46-2542-48b7-999e-aba97b3fb733" />
+<img width="3888" height="3044" alt="image" src="https://github.com/user-attachments/assets/08df9f76-bf63-462e-b696-ef488eaf4ecd" />
 
 ## APIs
 | 檔案名稱 | 1. 輸入 (Input) | 2. 輸出 (Output) | 3. 主要參數 (Param) | 4. 方法/邏輯 (Method) | 5. 呼叫例子 (Call Example) |
