@@ -4,6 +4,18 @@
 #  Dino-AI: 自動學會玩 Google 小恐龍的機器學習專題
 
 *(Dino-AI: Machine Learning Agent for the Google Chrome Dino Game)*
+本報告分成三部分 <br>
+> 一. 專案規格 <br>
+> 二. 系統架構與實作 <br>
+> 三. Deep Q-Network (DQN) 詳細理論 <br>
+
+
+---
+<br>
+
+# 一. 專案規格 (Project Specification)
+
+---
 
 ##  專案簡介 (Overview)
 
@@ -14,58 +26,99 @@
 在遊戲速度逐漸加快的情況下，自主做出即時反應並成功避開障礙。
 
 ---
-##  專案概念 (Core Idea)
+##  1. 功能需求 (Functional Requirements)
 
-本專案旨在開發一個具備 **「自我學習能力」** 的自動遊玩機器人，使其能夠自主遊玩經典的 Chrome 恐龍跳躍遊戲 (Dino Run)。
+本系統需具備以下核心功能，以滿足強化學習代理人 (Agent) 在遊戲環境中的訓練與運作：
 
-* **核心邏輯**：不使用傳統的規則腳本 (Rule-based，如「距離小於 50 就跳」)，而是採用 **強化學習 (Reinforcement Learning)** 技術。
-* **運作方式**：
-1. **觀察 (Observe)**：AI 讀取遊戲當下的數據（如速度、障礙物距離）。
-2. **決策 (Act)**：神經網路判斷當下應該「跑」、「跳」還是「蹲」。
-3. **回饋 (Reward)**：環境根據結果給予獎懲（活著給正分，撞死給重罰）。
-4. **學習 (Learn)**：透過試錯 (Trial-and-error) 與反向傳播算法，修正神經網路參數，追求最大化長期分數。
-
----
-
-## 使用技術 (Tech Stack)
-
-本專案採用 **輕量化且高效** 的技術堆疊，證明了在普通 CPU 上也能進行深度強化學習訓練。
-
-* **程式語言**：Python 3.8
-* **深度學習框架**：PyTorch
-  - 用於建構神經網路 (`nn.Module`)、計算梯度 (`backward`) 與優化參數 (`Adam` Optimizer)。
+- **FR-01 遊戲環境模擬 (Game Simulation)**
+  - 系統需基於 **Pygame** 建立恐龍遊戲環境。
+  - 需包含物理引擎，處理重力、跳躍拋物線與地面滾動速度。
+  - 需動態生成障礙物（不同寬高的仙人掌、不同高度的烏鴉）。
+  - 需具備精確的 **碰撞偵測 (Collision Detection)** 機制，當恐龍接觸障礙物時判定遊戲結束。
 
 
-* **遊戲環境開發**：Pygame
-  - 客製化的遊戲引擎 (`main.py`)，負責物理運算、碰撞偵測以及將遊戲畫面轉換為數值狀態 (State Vector)。
+- **FR-02 狀態特徵提取 (State Feature Extraction)**
+  - 系統不使用原始圖像 (Pixel)，而是提取 **特徵向量 (Feature Vector)** 作為 AI 輸入。
+  - 輸入向量需包含至少 6 個維度：`[遊戲速度, 與最近障礙物距離, 與第二近障礙物距離, 烏鴉高度, 是否蹲下, 是否滯空]`。
+  - 所有數值需經過正規化 (Normalization) 處理至 0~1 之間。
 
 
-* **核心演算法**：**DQN (Deep Q-Network)**
-  - **Experience Replay (經驗重播)**：建立 `ReplayBuffer` 儲存過往經驗，打破資料相關性，穩定訓練。
-  - **Target Network (目標網路)**：使用雙網路架構 (`local_nn` 與 `target_nn`)，並採用 **Soft Update** () 技術來穩定 Q 值目標。
-  - **Epsilon-Greedy Strategy**：動態調整探索率，平衡「隨機探索」與「利用經驗」。
+- **FR-03 DQN 代理人核心 (DQN Agent Core)**
+  - 需實作深度 Q 網路 (Deep Q-Network) 演算法。
+  - 需包含 **經驗回放池 (Replay Buffer)** 以儲存 `(state, action, reward, next_state, done)` 樣本。
+  - 需包含 **雙網路架構 (Target Network & Local Network)**，並實作 **軟更新 (Soft Update)** 機制。
+  - 需實作 **Epsilon-Greedy** 策略，支援從高探索率逐漸衰減至低探索率。
 
 
-* **Q-Net 模型架構**：**MLP (多層感知機)**
-* **輸入層**：6 個特徵 (速度、距離 1、距離 2、烏鴉高度、蹲下狀態、滯空狀態)。
-* **隱藏層**：2 層全連接層 (128 neurons)，搭配 ReLU 激活函數。
-* **輸出層**：3 個動作價值 (Run / Jump / Duck)。
+- **FR-04 訓練監控與記錄 (Training Monitoring)**
+  - 系統需在每個 Episode 結束後計算並記錄：總獎勵 (Total Reward)、遊戲分數 (Score)、平均 Loss、平均 Q 值 (Avg Q)。
+  - 需將上述數據輸出為 CSV 檔案，並繪製成學習曲線圖表 (Learning Curve)。
+  - 當分數創新高時，需自動儲存模型權重 (`.pth` 檔案)。
+
+
+- **FR-05 推論模式 (Inference Mode)**
+  - 需提供獨立的執行腳本 (`play.py`)。
+  - 需能夠載入預訓練的權重檔，並在關閉探索 (Epsilon=0) 的狀態下進行遊戲展示。
 
 ---
 
-##  專案目標 (Expected Results)
+## 2. 效能需求 (Performance Requirements)
 
-* 模型能根據畫面自動判斷 **何時跳躍、何時蹲下**。
-* 當遊戲速度變快時，模型會自然學會「**提早起跳**」的行為。
-* 不需要任何手刻規則（完全從0學習）。
+本系統需在有限的計算資源下達到高效的訓練與運作：
+
+* **PR-01 輕量硬體效能 (CPU Efficiency)**
+  * 模型架構需輕量化，確保在無 GPU 加速的 **純 CPU 環境** 下，訓練速度能至少超過 **60 FPS** 。
+
+* **PR-02 收斂速度 (Convergence Speed)**
+  * 需在 **2000 個 Episodes** 內展現出明顯的學習趨勢（Score 與 Q-Value 趨勢顯著優於隨機操作）。
+
+* **PR-04 推論延遲 (Inference Latency)**
+  * 在 `play.py` 模式下，單次決策 (Forward Pass) 的延遲需低於 **16ms** (支援 60 FPS 刷新率)，確保操作無延遲感。
 
 ---
 
-##  預期成果與應用 (Expected Outcomes)
+## 3. 限制條件 (Constraints)
 
-* 展示 **AI 如何透過重複遊玩逐步獲取高分行為**。
-* 建立一個可延伸的遊戲自動化框架，可套用至其他簡易 2D 遊戲。
-* 作為進一步研究強化學習 (Reinforcement Learning) 的基礎。
+本專案在開發與執行過程中受到以下條件限制：
+
+* **C-01 輸入限制 (State-based Input)**
+  * 受限於 CPU 算力與訓練效率考量，**禁止使用 CNN (卷積神經網路)** 直接處理遊戲截圖，必須使用手動提取的數值特徵。
+
+* **C-02 動作空間限制 (Discrete Action Space)**
+  * 動作空間固定為離散數值：`0 (Run)`, `1 (Jump)`, `2 (Duck)` 。
+
+* **C-03 程式語言與框架**
+  * 必須使用 **Python 3.8+**。
+  * 深度學習框架限定使用 **PyTorch**。
+  * 遊戲引擎限定使用 **Pygame**。
+---
+
+## 4. 驗收標準 (Acceptance Criteria)
+
+專案完成後，需通過以下標準：
+
+* **AC-01 平均存活能力驗證**
+  * 載入最終模型 (`checkpoint_dqn.pth`) 執行 `play.py` 連續 10 場。
+    * **通過標準**：10 場分數平均超過 200 分。
+   
+* **AC-02 最佳存活能力驗證**
+  * 載入最終模型 (`checkpoint_dqn.pth`) 執行 `play.py` 連續 10 場。
+    * **通過標準**：至少有 1 場分數突破 1000 分。
+
+* **AC-03 學習曲線驗證**
+  * 檢查輸出的 `training_result.png` 圖表。
+    * **通過標準**：
+    * **Score 曲線** 呈現整體上升趨勢 (Upward Trend)。
+
+* **AC-04 系統穩定性**
+  * 長時間掛機訓練 (Overnight Training) 不會因記憶體溢出 (OOM) 或邏輯錯誤而崩潰。
+  * CSV 記錄檔完整無缺漏。
+
+
+---
+<br>
+
+# 二. 系統架構與實作 (System Architecture and Implementation)
 
 ---
 
@@ -169,7 +222,78 @@ class Model(nn.Module):
 ```
 
 ---
-## Loss Function 設計
+## 成果展示
+#### 運行play.py 執行推論
+demo影片:
+
+
+https://github.com/user-attachments/assets/7d55f5e9-4c49-434e-a283-624a7ee6098a
+
+#### score與reward學習曲線
+<img width="1200" height="1000" alt="Code_Generated_Image (2)" src="https://github.com/user-attachments/assets/e9a1e632-f9dd-43e5-a844-3bc0245e6c43" />
+
+---
+## 驗收結果
+
+* **AC-01 存活能力驗證**
+✅通過
+* **AC-02 最佳存活能力驗證**
+❌失敗, `最高分680分`
+* **AC-03 學習曲線驗證**
+✅通過
+* **AC-04 系統穩定性**
+✅通過
+
+---
+<br>
+
+# 三. Deep Q-Network (DQN) 詳細理論
+
+---
+
+本專案實作了 DeepMind 於 2015 年在 Nature 發表的經典論文 **"Human-level control through deep reinforcement learning"**。
+以下詳細解析 DQN 的核心數學架構與 Loss Function 推導過程。
+
+
+### 1. 核心目標：最佳動作價值函數 (Optimal Action-Value Function)
+
+DQN 的目標是讓 Agent 學會一個策略，以最大化未來的累積獎勵。我們透過 **Bellman Optimality Equation** 來定義「最佳動作價值」：
+
+$$
+Q^{\ast}(s, a) = \mathbb{E}_{s^{\prime}} \left[ r + \gamma \max_{a^{\prime}} Q^{\ast}(s^{\prime}, a^{\prime}) \mid s, a \right]
+$$
+
+**符號定義：**
+* $Q^{\ast}(s, a)$: 在狀態 $s$ 採取動作 $a$，並隨後都採取最佳策略所能獲得的最大預期回報 (Optimal Q-value)。
+* $\mathbb{E}_{s^{\prime}}$: 對下一狀態分佈的期望值 (Expectation)。
+* $r$: 執行動作後獲得的**立即獎勵 (Immediate Reward)**。
+* $\gamma$: **折扣因子 (Discount Factor)**，介於 $[0, 1]$ 之間。決定了 Agent 對未來獎勵的重視程度（0 代表只看當下，1 代表長遠規劃）。
+* $s^{\prime}$: 執行動作後轉移到的**下一狀態 (Next State)**。
+* $a^{\prime}$: 在下一狀態 $s^{\prime}$ 可能採取的動作。
+
+---
+
+### 2. 函數近似 (Function Approximation)
+
+由於 PAIA 遊戲的狀態空間過大，無法用表格記錄每個 $Q$ 值。但 PAIA 可以直接讀取物件參數，因此我們的 DQN 使用一個 **多層感知器 (Multi-Layer Perceptron, MLP)** 來逼近上述的 $Q^*$ 函數：
+
+$$
+Q(s, a; \theta) \approx Q^*(s, a)
+$$
+
+**符號定義：**
+* $Q(s, a; \theta)$: 我們訓練的 **Q-Network**。
+* $\theta$: 神經網路當前的**權重參數 (Weights)**。
+* $s$: 輸入狀態向量 $\phi$。在本實作中， $\phi$ 為一個正規化後的 **6 維向量**：
+
+$$
+\phi = [\text{Speed}, \text{Dist1}, \text{Dist2}, \text{Crow}, \text{Ducking}, \text{In air}]
+$$
+
+  
+---
+
+### 3. Loss Function 詳細推導
 
 為了訓練網路，我們需要定義一個損失函數 (Loss Function) 來衡量預測誤差。DQN 結合了 **Q-Learning** 與 **深度神經網路**，並引入了 **Target Network** 與 **Experience Replay** 來穩定訓練。
 
@@ -212,17 +336,23 @@ $$
 * $\theta_i^-$: 第 $i$ 次迭代時，目標網路 (Target Network) 的參數（固定不變，直到下一次同步）。
 
 ---
-## 成果展示
-#### 運行play.py 執行推論
-demo影片:
 
+### 4. 梯度更新 (Gradient Descent)
 
-https://github.com/user-attachments/assets/7d55f5e9-4c49-434e-a283-624a7ee6098a
+為了最小化 Loss，我們對參數 $\theta$ 進行微分，得到梯度方向並進行更新：
 
-#### score與reward學習曲線
-<img width="1200" height="1000" alt="Code_Generated_Image (2)" src="https://github.com/user-attachments/assets/e9a1e632-f9dd-43e5-a844-3bc0245e6c43" />
+$$
+\nabla_{\theta_i} L_i(\theta_i) = \mathbb{E} \left[ \left( r + \gamma \max_{a'} \hat{Q}(\phi', a'; \theta_i^-) - Q(\phi, a; \theta_i) \right) \cdot \nabla_{\theta_i} Q(\phi, a; \theta_i) \right]
+$$
 
+**符號意義：**
+* 這一項描述了「目標」與「預測」的差距（Error Term）。
+* $\nabla_{\theta_i} Q(\dots)$: 這是 Q 網路對於權重的梯度。 
+* Optimizer: 雖然原始論文使用 RMSProp，但本專案使用 Adam 優化器 (lr=0.0005) 來執行此更新，以獲得更快的收斂速度。
+  
+### 5. 參考文獻
 
+1. **Original Paper:** Mnih, V., Kavukcuoglu, K., Silver, D., et al. "Human-level control through deep reinforcement learning." *Nature* 518, 529–533 (2015).
 
 
 
