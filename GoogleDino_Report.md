@@ -3,7 +3,7 @@
 
 #  Dino-AI: 自動學會玩 Google 小恐龍的機器學習專題
 
-*(Dino-AI: Machine Learning Agent for the Google Chrome Dino Game)*
+*(Dino-AI: Machine Learning Agent for the Google Chrome Dino Game)*<br>
 本報告分成三部分 <br>
 > 一. 專案規格 <br>
 > 二. 系統架構與實作 <br>
